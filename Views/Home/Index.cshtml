@@ -1,0 +1,163 @@
+@{
+    ViewData["Title"] = "SignalR Chat";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .chat-container {
+            background: #fff;
+            margin-top: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+        }
+        .messages {
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 16px;
+            background: #fafafa;
+        }
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+        #messageInput {
+            flex: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #sendBtn {
+            padding: 8px 16px;
+            border: none;
+            background: #0078d7;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #sendBtn:hover {
+            background: #005fa3;
+        }
+        .username-row {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        #usernameInput {
+            flex: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #registerBtn {
+            padding: 8px 16px;
+            border: none;
+            background: #28a745;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #registerBtn:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>SignalR Chat</h2>
+        <div class="username-row">
+            <input type="text" id="usernameInput" placeholder="Kullanıcı adınız" />
+            <button id="registerBtn">Giriş Yap</button>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="input-row">
+            <input type="text" id="messageInput" placeholder="Mesajınızı yazın" />
+            <button id="sendBtn">Gönder</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        let connection = null;
+        let registered = false;
+        let username = "";
+        const messagesDiv = document.getElementById("messages");
+        document.getElementById("registerBtn").onclick = function() {
+            username = document.getElementById("usernameInput").value.trim();
+            if (!username) {
+                alert("Kullanıcı adı giriniz.");
+                return;
+            }
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chat")
+                .build();
+            connection.start().then(function () {
+                connection.invoke("RegisterUser", username);
+                registered = true;
+                document.getElementById("registerBtn").disabled = true;
+                document.getElementById("usernameInput").disabled = true;
+            });
+            connection.on("ReceiveMessage", function (user, message) {
+                const msg = document.createElement("div");
+                msg.textContent = user + ": " + message;
+                messagesDiv.appendChild(msg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+            connection.on("UserJoined", function (user) {
+                const msg = document.createElement("div");
+                msg.style.color = "#28a745";
+                msg.textContent = user + " sohbete katıldı.";
+                messagesDiv.appendChild(msg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+            connection.on("UserLeft", function (user) {
+                const msg = document.createElement("div");
+                msg.style.color = "#dc3545";
+                msg.textContent = user + " sohbetten ayrıldı.";
+                messagesDiv.appendChild(msg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        };
+        document.getElementById("sendBtn").onclick = function() {
+            if (!registered) {
+                alert("Önce kullanıcı adı ile giriş yapmalısınız.");
+                return;
+            }
+            const msg = document.getElementById("messageInput").value;
+            if (msg.trim() !== "") {
+                connection.invoke("SendMessage", msg);
+                document.getElementById("messageInput").value = "";
+            }
+        };
+        document.getElementById("messageInput").addEventListener("keyup", function(e) {
+            if (e.key === "Enter") {
+                document.getElementById("sendBtn").click();
+            }
+        });
+        document.getElementById("usernameInput").addEventListener("keyup", function(e) {
+            if (e.key === "Enter") {
+                document.getElementById("registerBtn").click();
+            }
+        });
+    </script>
+</body>
+</html>

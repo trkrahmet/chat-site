@@ -4,6 +4,7 @@ using Proje;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddSignalR();
+builder.Services.AddControllersWithViews(); // Add this line
 
 builder.Services.AddCors(options =>
 {
@@ -18,17 +19,17 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.EnsureCreated();
+// using (var scope = app.Services.CreateScope())
+// {
+//     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//     dbContext.Database.EnsureCreated();
 
-    if (!dbContext.Items.Any())
-    {
-        dbContext.Items.Add(new Item { Name = "Sample Item" });
-        dbContext.SaveChanges();
-    }
-}
+//     if (!dbContext.Items.Any())
+//     {
+//         dbContext.Items.Add(new Item { Name = "Sample Item" });
+//         dbContext.SaveChanges();
+//     }
+// }
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -36,6 +37,11 @@ app.UseStaticFiles();
 app.UseCors();
 
 app.MapHub<ChatHub>("/chat");
+
+// MVC routing ekle
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
 
